@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { useShop } from '@/context/ShopContext';
 import { Category } from '@/types';
-import { Tags, Plus, Upload, Trash2, Edit3, Image as ImageIcon, CheckCircle, AlertCircle } from 'lucide-react';
+import { Tags, Plus, Upload, Trash2, Edit3, Image as ImageIcon, CheckCircle, AlertCircle, Loader2, CloudUpload } from 'lucide-react';
 
 export default function AdminCategoriesPage() {
   const { categories, addCategory, updateCategory, deleteCategory } = useShop();
@@ -15,20 +15,47 @@ export default function AdminCategoriesPage() {
   const [imageUrl, setImageUrl] = useState('');
   const [imagePreview, setImagePreview] = useState('');
   const [iconName, setIconName] = useState('Cake');
+  const [isUploading, setIsUploading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Handle direct file upload with FileReader preview
-  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle direct file upload via Cloudinary (/api/upload)
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setImageUrl(result);
-        setImagePreview(result);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    setIsUploading(true);
+    const reader = new FileReader();
+
+    reader.onloadend = async () => {
+      if (typeof reader.result === 'string') {
+        const rawData = reader.result;
+        try {
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: rawData }),
+          });
+          const json = await res.json();
+          if (json.success && json.url) {
+            setImageUrl(json.url);
+            setImagePreview(json.url);
+            setSuccessMessage('Category image uploaded to Cloudinary!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+          } else {
+            setImageUrl(rawData);
+            setImagePreview(rawData);
+          }
+        } catch (err) {
+          console.error('Cloudinary upload error:', err);
+          setImageUrl(rawData);
+          setImagePreview(rawData);
+        } finally {
+          setIsUploading(false);
+        }
+      }
+    };
+
+    reader.readAsDataURL(file);
   };
 
   const startEdit = (cat: Category) => {
@@ -153,15 +180,24 @@ export default function AdminCategoriesPage() {
                 />
               </div>
 
-              {/* Direct Image Upload & URL */}
+              {/* Direct Image Upload via Cloudinary & URL */}
               <div className="space-y-2">
-                <label className="block font-bold text-stone-200">Category Image *</label>
+                <label className="block font-bold text-stone-200">Category Image (Cloudinary Hosted) *</label>
 
                 {/* File input */}
                 <label className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 cursor-pointer text-amber-300 font-bold transition-colors">
-                  <Upload className="w-4 h-4" />
-                  <span>Choose Image File from Device</span>
-                  <input type="file" accept="image/*" onChange={handleImageFileChange} className="hidden" />
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                      <span>Uploading to Cloudinary...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CloudUpload className="w-4 h-4 text-amber-400" />
+                      <span>Upload Device Image to Cloudinary</span>
+                    </>
+                  )}
+                  <input type="file" accept="image/*" disabled={isUploading} onChange={handleImageFileChange} className="hidden" />
                 </label>
 
                 <div className="text-center text-[10px] text-stone-500 font-bold uppercase">— OR —</div>
@@ -191,7 +227,8 @@ export default function AdminCategoriesPage() {
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl gold-button-gradient font-bold text-xs shadow-md flex items-center justify-center gap-2"
+                disabled={isUploading}
+                className="w-full py-3 rounded-xl gold-button-gradient font-bold text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>{editingId ? 'Update Category' : 'Save Category'}</span>
               </button>
@@ -225,14 +262,14 @@ export default function AdminCategoriesPage() {
                   <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-800">
                     <button
                       onClick={() => startEdit(cat)}
-                      className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-amber-500 hover:text-stone-950 font-bold text-stone-200 text-[11px] flex items-center gap-1 transition-colors"
+                      className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-amber-500 hover:text-stone-950 font-bold text-stone-200 text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
                     >
                       <Edit3 className="w-3.5 h-3.5" /> Edit Image/Title
                     </button>
 
                     <button
                       onClick={() => handleDelete(cat.id, cat.name)}
-                      className="p-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white transition-colors"
+                      className="p-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
