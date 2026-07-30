@@ -14,6 +14,8 @@ interface ShopContextType {
   deleteCake: (id: string) => void;
   categories: Category[];
   addCategory: (category: Omit<Category, 'id'>) => void;
+  updateCategory: (id: string, category: Partial<Category>) => void;
+  deleteCategory: (id: string) => void;
   offers: Offer[];
   addOffer: (offer: Omit<Offer, 'id'>) => void;
   toggleOfferStatus: (id: string) => void;
@@ -96,6 +98,17 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (err) {
         console.log('Using local cakes fallback:', err);
+      }
+
+      try {
+        const resCats = await fetch('/api/categories');
+        const jsonCats = await resCats.json();
+        if (jsonCats.success && Array.isArray(jsonCats.data) && jsonCats.data.length > 0) {
+          setCategories(jsonCats.data);
+          localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(jsonCats.data));
+        }
+      } catch (err) {
+        console.log('Using local categories fallback:', err);
       }
 
       try {
@@ -199,10 +212,42 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newCategory: Category = {
       ...categoryData,
       id: `cat-${Date.now()}`,
+      slug: categoryData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
     };
     const updated = [...categories, newCategory];
     setCategories(updated);
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(updated));
+
+    fetch('/api/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newCategory),
+    }).catch(console.error);
+  };
+
+  const updateCategory = (id: string, categoryData: Partial<Category>) => {
+    const updated = categories.map((cat) => (cat.id === id ? { ...cat, ...categoryData } : cat));
+    setCategories(updated);
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(updated));
+
+    const target = updated.find((c) => c.id === id);
+    if (target) {
+      fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(target),
+      }).catch(console.error);
+    }
+  };
+
+  const deleteCategory = (id: string) => {
+    const updated = categories.filter((c) => c.id !== id);
+    setCategories(updated);
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(updated));
+
+    fetch(`/api/categories?id=${id}`, {
+      method: 'DELETE',
+    }).catch(console.error);
   };
 
   const addOffer = (offerData: Omit<Offer, 'id'>) => {
@@ -429,6 +474,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteCake,
         categories,
         addCategory,
+        updateCategory,
+        deleteCategory,
         offers,
         addOffer,
         toggleOfferStatus,

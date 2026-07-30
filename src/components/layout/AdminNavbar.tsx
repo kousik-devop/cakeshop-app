@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Cake,
+  Tags,
   Package,
   Settings,
   Globe,
@@ -29,6 +30,7 @@ export const AdminNavbar: React.FC = () => {
   const adminLinks = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Cakes Menu', href: '/admin/cakes', icon: Cake },
+    { name: 'Categories', href: '/admin/categories', icon: Tags },
     { name: 'Inventory & Stock', href: '/admin/inventory', icon: Package },
     { name: 'Store Settings', href: '/admin/settings', icon: Settings },
   ];
