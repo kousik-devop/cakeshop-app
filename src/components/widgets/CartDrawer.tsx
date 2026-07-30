@@ -19,20 +19,24 @@ export const CartDrawer: React.FC = () => {
 
   if (!isCartDrawerOpen) return null;
 
-  // Construct complete WhatsApp Order message
+  // Construct complete WhatsApp Order message with cake links
   const handleSendFullOrderToWhatsApp = () => {
     if (cart.length === 0) return;
+
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sweetdelightcakes.com';
 
     let itemsListText = '';
     cart.forEach((item, index) => {
       const price = calculateDiscountedPrice(item.cake.price, item.cake.discountPercent);
+      const cakeLink = `${baseUrl}/cake/${item.cake.id}`;
+
       itemsListText += `${index + 1}. *${item.cake.name}*\n` +
                         `   • Weight: ${item.selectedWeight}\n` +
                         `   • Flavor: ${item.selectedFlavor}\n` +
                         `   • Eggless: ${item.isEggless ? 'Yes 🌱' : 'No'}\n` +
                         `   • Qty: ${item.quantity} x ${formatCurrency(price, shopSettings.currencySymbol)}\n` +
                         (item.customWriting ? `   • Message: "${item.customWriting}"\n` : '') +
-                        `\n`;
+                        `   • 🔗 Link: ${cakeLink}\n\n`;
     });
 
     const fullMsg = encodeURIComponent(
@@ -161,10 +165,10 @@ export const CartDrawer: React.FC = () => {
 
               <button
                 onClick={handleSendFullOrderToWhatsApp}
-                className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs text-center flex items-center justify-center gap-2 shadow-md transition-transform active:scale-95"
+                className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs text-center flex items-center justify-center gap-2 shadow-md transition-transform active:scale-95 cursor-pointer"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>Send Order to WhatsApp</span>
+                <span>Send Order to WhatsApp (With Cake Links)</span>
               </button>
             </div>
           )}

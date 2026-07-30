@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useShop } from '@/context/ShopContext';
 import { useAuth } from '@/context/AuthContext';
-import { formatCurrency } from '@/lib/utils';
+import { calculateDiscountedPrice, formatCurrency } from '@/lib/utils';
 import { ShoppingBag, ArrowLeft, MessageCircle } from 'lucide-react';
 
 export default function CheckoutPage() {
@@ -36,15 +36,21 @@ export default function CheckoutPage() {
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sweetdelightcakes.com';
+
     const itemsSummary = cart
-      .map((i) => `• ${i.cake.name} (${i.selectedWeight}, ${i.selectedFlavor}) x${i.quantity} = ₹${i.cake.price * i.quantity}`)
-      .join('\n');
+      .map((i, index) => {
+        const itemPrice = calculateDiscountedPrice(i.cake.price, i.cake.discountPercent);
+        const cakeLink = `${baseUrl}/cake/${i.cake.id}`;
+        return `${index + 1}. *${i.cake.name}* (${i.selectedWeight}, ${i.selectedFlavor}) x${i.quantity} = ${formatCurrency(itemPrice * i.quantity, shopSettings.currencySymbol)}\n   🔗 Link: ${cakeLink}`;
+      })
+      .join('\n\n');
 
     const whatsappMsg = encodeURIComponent(
       `🎂 *NEW CAKE ORDER - ${shopSettings.shopName}*\n\n` +
-      `*Customer*: ${fullName}\n` +
+      `*Customer Name*: ${fullName}\n` +
       `*Phone*: ${phone}\n` +
-      `*Address*: ${street}, ${city}, ${state} - ${pinCode}\n\n` +
+      `*Delivery Address*: ${street}, ${city}, ${state} - ${pinCode}\n\n` +
       `*Order Items*:\n${itemsSummary}\n\n` +
       `*Total Amount*: ${formatCurrency(cartTotal, shopSettings.currencySymbol)}\n\n` +
       `Please confirm order delivery schedule!`
@@ -76,31 +82,31 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block font-bold mb-1 text-stone-200">Full Name *</label>
-            <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-stone-700 bg-stone-800 text-stone-100" />
+            <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-stone-700 bg-stone-800 text-stone-100 font-medium" />
           </div>
           <div>
             <label className="block font-bold mb-1 text-stone-200">Phone Number *</label>
-            <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-stone-700 bg-stone-800 text-stone-100" />
+            <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-stone-700 bg-stone-800 text-stone-100 font-medium" />
           </div>
         </div>
 
         <div>
           <label className="block font-bold mb-1 text-stone-200">Delivery Street Address *</label>
-          <input type="text" required value={street} onChange={(e) => setStreet(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-stone-700 bg-stone-800 text-stone-100" />
+          <input type="text" required value={street} onChange={(e) => setStreet(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-stone-700 bg-stone-800 text-stone-100 font-medium" />
         </div>
 
         <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="block font-bold mb-1 text-stone-200">City</label>
-            <input type="text" value={city} onChange={(e) => setCity(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-stone-700 bg-stone-800 text-stone-100" />
+            <input type="text" value={city} onChange={(e) => setCity(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-stone-700 bg-stone-800 text-stone-100 font-medium" />
           </div>
           <div>
             <label className="block font-bold mb-1 text-stone-200">State</label>
-            <input type="text" value={state} onChange={(e) => setState(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-stone-700 bg-stone-800 text-stone-100" />
+            <input type="text" value={state} onChange={(e) => setState(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-stone-700 bg-stone-800 text-stone-100 font-medium" />
           </div>
           <div>
             <label className="block font-bold mb-1 text-stone-200">Pin Code</label>
-            <input type="text" value={pinCode} onChange={(e) => setPinCode(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-stone-700 bg-stone-800 text-stone-100" />
+            <input type="text" value={pinCode} onChange={(e) => setPinCode(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-stone-700 bg-stone-800 text-stone-100 font-medium" />
           </div>
         </div>
 
@@ -110,7 +116,7 @@ export default function CheckoutPage() {
             <span className="font-serif-luxury text-2xl font-black text-amber-400">{formatCurrency(cartTotal, shopSettings.currencySymbol)}</span>
           </div>
 
-          <button type="submit" className="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg">
+          <button type="submit" className="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg cursor-pointer">
             <MessageCircle className="w-5 h-5" /> Forward Order to WhatsApp
           </button>
         </div>

@@ -25,19 +25,31 @@ export default function CakeDetailPage() {
   const cakeId = params?.id as string;
   const cake = cakes.find((c) => c.id === cakeId) || cakes[0];
 
-  const [selectedImage, setSelectedImage] = useState(cake.image);
-  const [selectedWeight, setSelectedWeight] = useState(cake.weights[0]);
-  const [selectedFlavor, setSelectedFlavor] = useState(cake.flavors[0]);
-  const [isEggless, setIsEggless] = useState(cake.isEggless);
+  const [selectedImage, setSelectedImage] = useState(cake?.image || '');
+  const [selectedWeight, setSelectedWeight] = useState(cake?.weights?.[0] || '1 kg');
+  const [selectedFlavor, setSelectedFlavor] = useState(cake?.flavors?.[0] || 'Chocolate');
+  const [isEggless, setIsEggless] = useState(cake?.isEggless ?? true);
   const [customWriting, setCustomWriting] = useState('');
-  const [deliveryPin, setDeliveryPin] = useState('');
-  const [pinChecked, setPinChecked] = useState(false);
+
+  if (!cake) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4 text-stone-100">
+        <h2 className="text-2xl font-serif-luxury font-bold">Cake Not Found</h2>
+        <Link href="/collection" className="inline-block px-6 py-3 gold-button-gradient font-bold rounded-xl text-xs">
+          Back to Cake Collection
+        </Link>
+      </div>
+    );
+  }
 
   const discountedPrice = calculateDiscountedPrice(cake.price, cake.discountPercent);
   const isWishlisted = isInWishlist(cake.id);
 
-  // Formats WhatsApp Order URL with all selected parameters
+  // Formats WhatsApp Order URL with direct Cake Page Link
   const handleDirectWhatsAppOrder = () => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sweetdelightcakes.com';
+    const cakeLink = `${baseUrl}/cake/${cake.id}`;
+
     const msgText = encodeURIComponent(
       `🎂 *NEW CAKE ORDER - ${shopSettings.shopName}*\n\n` +
       `*Cake Name*: ${cake.name}\n` +
@@ -45,9 +57,10 @@ export default function CakeDetailPage() {
       `*Selected Weight*: ${selectedWeight}\n` +
       `*Selected Flavor*: ${selectedFlavor}\n` +
       `*Eggless*: ${isEggless ? 'Yes 🌱 (100% Eggless)' : 'No'}\n` +
-      (customWriting ? `*Custom Writing*: "${customWriting}"\n` : '') +
-      `*Price*: ${formatCurrency(discountedPrice, shopSettings.currencySymbol)}\n\n` +
-      `Please let me know availability and estimated delivery slot!`
+      (customWriting ? `*Custom Message*: "${customWriting}"\n` : '') +
+      `*Price*: ${formatCurrency(discountedPrice, shopSettings.currencySymbol)}\n` +
+      `*🔗 Cake Link*: ${cakeLink}\n\n` +
+      `Please confirm availability and delivery slot!`
     );
 
     window.open(`https://wa.me/${shopSettings.whatsappNumber}?text=${msgText}`, '_blank');
@@ -65,8 +78,8 @@ export default function CakeDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
         {/* Left Gallery */}
         <div className="space-y-4">
-          <div className="aspect-square rounded-3xl overflow-hidden glass-card bg-stone-900 shadow-md">
-            <img src={selectedImage} alt={cake.name} className="w-full h-full object-cover" />
+          <div className="aspect-square rounded-3xl overflow-hidden glass-card bg-stone-900 shadow-md relative">
+            <img src={selectedImage || cake.image} alt={cake.name} className="w-full h-full object-cover" />
           </div>
 
           {cake.gallery && cake.gallery.length > 1 && (
@@ -108,9 +121,9 @@ export default function CakeDetailPage() {
             <div className="flex items-center gap-2 mt-2">
               <div className="flex items-center gap-1 text-amber-500 font-bold text-sm">
                 <Star className="w-4 h-4 fill-amber-400" />
-                <span>{cake.rating}</span>
+                <span>{cake.rating || 5}</span>
               </div>
-              <span className="text-xs text-stone-400">({cake.reviewsCount} reviews)</span>
+              <span className="text-xs text-stone-400">({cake.reviewsCount || 1} reviews)</span>
             </div>
           </div>
 
@@ -132,44 +145,48 @@ export default function CakeDetailPage() {
           {/* Options Selectors */}
           <div className="space-y-4 text-xs font-bold">
             {/* Weight Picker */}
-            <div>
-              <label className="block text-stone-900 dark:text-stone-100 mb-1.5">Select Weight:</label>
-              <div className="flex flex-wrap gap-2">
-                {cake.weights.map((w) => (
-                  <button
-                    key={w}
-                    onClick={() => setSelectedWeight(w)}
-                    className={`px-4 py-2 rounded-xl border transition-all ${
-                      selectedWeight === w
-                        ? 'bg-amber-500 text-stone-950 border-amber-500 shadow-sm'
-                        : 'border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300'
-                    }`}
-                  >
-                    {w}
-                  </button>
-                ))}
+            {cake.weights && cake.weights.length > 0 && (
+              <div>
+                <label className="block text-stone-900 dark:text-stone-100 mb-1.5">Select Weight:</label>
+                <div className="flex flex-wrap gap-2">
+                  {cake.weights.map((w) => (
+                    <button
+                      key={w}
+                      onClick={() => setSelectedWeight(w)}
+                      className={`px-4 py-2 rounded-xl border transition-all ${
+                        selectedWeight === w
+                          ? 'bg-amber-500 text-stone-950 border-amber-500 shadow-sm'
+                          : 'border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300'
+                      }`}
+                    >
+                      {w}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Flavor Picker */}
-            <div>
-              <label className="block text-stone-900 dark:text-stone-100 mb-1.5">Select Flavor:</label>
-              <div className="flex flex-wrap gap-2">
-                {cake.flavors.map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setSelectedFlavor(f)}
-                    className={`px-4 py-2 rounded-xl border transition-all ${
-                      selectedFlavor === f
-                        ? 'bg-amber-500 text-stone-950 border-amber-500 shadow-sm'
-                        : 'border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300'
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
+            {cake.flavors && cake.flavors.length > 0 && (
+              <div>
+                <label className="block text-stone-900 dark:text-stone-100 mb-1.5">Select Flavor:</label>
+                <div className="flex flex-wrap gap-2">
+                  {cake.flavors.map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setSelectedFlavor(f)}
+                      className={`px-4 py-2 rounded-xl border transition-all ${
+                        selectedFlavor === f
+                          ? 'bg-amber-500 text-stone-950 border-amber-500 shadow-sm'
+                          : 'border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Eggless Toggle */}
             <div className="flex items-center gap-2 pt-2">
@@ -178,7 +195,7 @@ export default function CakeDetailPage() {
                 id="detail-eggless"
                 checked={isEggless}
                 onChange={(e) => setIsEggless(e.target.checked)}
-                className="w-4 h-4 accent-emerald-600"
+                className="w-4 h-4 accent-emerald-600 cursor-pointer"
               />
               <label htmlFor="detail-eggless" className="cursor-pointer text-stone-900 dark:text-stone-100">
                 100% Eggless Cake (No Eggs) 🌱
@@ -202,10 +219,10 @@ export default function CakeDetailPage() {
           <div className="pt-4 border-t border-stone-200 dark:border-stone-800">
             <button
               onClick={handleDirectWhatsAppOrder}
-              className="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-98"
+              className="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-98 cursor-pointer"
             >
               <MessageCircle className="w-5 h-5" />
-              <span>Order via WhatsApp</span>
+              <span>Order via WhatsApp (Includes Cake Link)</span>
             </button>
           </div>
         </div>
