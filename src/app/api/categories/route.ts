@@ -2,16 +2,6 @@ import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { initialCategories } from '@/data/mockData';
 
-// Helper function ensuring ONLY Cloudinary image URLs are stored in MongoDB
-function sanitizeToCloudinaryUrl(imgStr: string): string {
-  if (!imgStr) return 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=600&q=80';
-  if (imgStr.startsWith('http://') || imgStr.startsWith('https://')) return imgStr;
-
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dks5y6z0s';
-  const imgId = `cat_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-  return `https://res.cloudinary.com/${cloudName}/image/upload/v1720000000/${imgId}.jpg`;
-}
-
 export async function GET() {
   try {
     const client = await clientPromise;
@@ -41,13 +31,11 @@ export async function POST(request: Request) {
     const db = client.db('sweetdelightcakes');
     const categoriesCol = db.collection('categories');
 
-    const cloudinaryImageUrl = sanitizeToCloudinaryUrl(body.image);
-
     const categoryDoc = {
       id: body.id || `cat-${Date.now()}`,
       slug: body.slug || (body.name ? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : `cat-${Date.now()}`),
       ...body,
-      image: cloudinaryImageUrl,
+      image: body.image || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=600&q=80',
     };
 
     await categoriesCol.updateOne(
