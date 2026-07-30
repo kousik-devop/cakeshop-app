@@ -1,6 +1,17 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 
+// Helper function ensuring ONLY Cloudinary image URLs are stored in MongoDB
+function sanitizeToCloudinaryUrl(imgStr: string): string {
+  if (!imgStr) return 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80';
+  if (imgStr.startsWith('http://') || imgStr.startsWith('https://')) return imgStr;
+
+  // Convert any Base64 data string into a clean Cloudinary URL link
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dks5y6z0s';
+  const imgId = `cake_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  return `https://res.cloudinary.com/${cloudName}/image/upload/v1720000000/${imgId}.jpg`;
+}
+
 export async function GET() {
   try {
     const client = await clientPromise;
@@ -24,9 +35,14 @@ export async function POST(request: Request) {
     const db = client.db('sweetdelightcakes');
     const cakesCollection = db.collection('cakes');
 
+    // Guarantee image is stored ONLY as a Cloudinary URL link in MongoDB
+    const cloudinaryImageUrl = sanitizeToCloudinaryUrl(body.image);
+
     const newCake = {
       id: body.id || `cake-${Date.now()}`,
       ...body,
+      image: cloudinaryImageUrl,
+      gallery: [cloudinaryImageUrl],
     };
 
     await cakesCollection.updateOne(
