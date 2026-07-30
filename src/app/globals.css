@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Poppins:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --font-playfair: 'Playfair Display', serif;
+  --font-poppins: 'Poppins', sans-serif;
+  --bg-light: #121014;
+  --card-light: #1C1820;
+  --text-dark: #F9F6F0;
+  --text-muted: #A8A29E;
+  --gold: #D4AF37;
+  --gold-warm: #E5C158;
+  --soft-pink: #261922;
+  --rose-accent: #E07A5F;
+  --cocoa: #F9F6F0;
+}
+
+body {
+  font-family: var(--font-poppins);
+  background-color: #121014;
+  color: #F9F6F0;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.font-serif-luxury {
+  font-family: var(--font-playfair);
+}
+
+/* Fluid Responsive Typography Base System */
+h1, .text-fluid-h1 {
+  font-size: clamp(1.75rem, 5vw, 3.75rem);
+  line-height: 1.15;
+}
+
+h2, .text-fluid-h2 {
+  font-size: clamp(1.35rem, 3.5vw, 2.5rem);
+  line-height: 1.2;
+}
+
+h3, .text-fluid-h3 {
+  font-size: clamp(1.1rem, 2.5vw, 1.75rem);
+  line-height: 1.25;
+}
+
+/* Ultra-Sleek Luxury Dark Cards */
+.glass-card {
+  background: #1C1820;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+  color: #F9F6F0;
+}
+
+/* Translucent Dark Header */
+.glass-header {
+  background: rgba(18, 16, 20, 0.96);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Rich Gold Gradients */
+.gold-gradient-text {
+  background: linear-gradient(135deg, #F3E5AB 0%, #D4AF37 50%, #FFDF00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-button-gradient {
+  background: linear-gradient(135deg, #D4AF37 0%, #E6CA65 50%, #C59B27 100%);
+  color: #1F150A;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35);
+}
+
+.gold-button-gradient:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.45);
+}
+
+.gold-button-gradient:active {
+  transform: scale(0.98);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #121014;
+}
+::-webkit-scrollbar-thumb {
+  background: #D4AF37;
+  border-radius: 3px;
+}
