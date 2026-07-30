@@ -5,32 +5,39 @@ import { useSearchParams } from 'next/navigation';
 import { useShop } from '@/context/ShopContext';
 import { CakeCard } from '@/components/cake/CakeCard';
 import { Filter, Search, SlidersHorizontal, ArrowUpDown, X, Sparkles } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 function CollectionContent() {
   const { cakes, categories } = useShop();
   const searchParams = useSearchParams();
   const initialCat = searchParams.get('category') || '';
 
+  // Calculate highest price among cakes for dynamic default max price
+  const maxAvailablePrice = useMemo(() => {
+    if (cakes.length === 0) return 5000;
+    return Math.max(5000, ...cakes.map((c) => c.price));
+  }, [cakes]);
+
   // Filter states
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCat);
   const [selectedFlavor, setSelectedFlavor] = useState<string>('');
   const [selectedWeight, setSelectedWeight] = useState<string>('');
   const [egglessOnly, setEgglessOnly] = useState<boolean>(false);
-  const [priceMax, setPriceMax] = useState<number>(200);
+  const [priceMax, setPriceMax] = useState<number>(10000);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'price-low' | 'price-high' | 'best-selling'>('popular');
 
   // Available flavors list derived from cakes
-  const allFlavors = Array.from(new Set(cakes.flatMap((c) => c.flavors)));
-  const allWeights = Array.from(new Set(cakes.flatMap((c) => c.weights)));
+  const allFlavors = Array.from(new Set(cakes.flatMap((c) => c.flavors || [])));
+  const allWeights = Array.from(new Set(cakes.flatMap((c) => c.weights || [])));
 
   // Filter & Sort Logic
   const filteredCakes = useMemo(() => {
     return cakes
       .filter((cake) => {
         if (selectedCategory && cake.category.toLowerCase() !== selectedCategory.toLowerCase()) return false;
-        if (selectedFlavor && !cake.flavors.some((f) => f.toLowerCase().includes(selectedFlavor.toLowerCase()))) return false;
-        if (selectedWeight && !cake.weights.includes(selectedWeight)) return false;
+        if (selectedFlavor && !cake.flavors?.some((f) => f.toLowerCase().includes(selectedFlavor.toLowerCase()))) return false;
+        if (selectedWeight && !cake.weights?.includes(selectedWeight)) return false;
         if (egglessOnly && !cake.isEggless) return false;
         if (cake.price > priceMax) return false;
         if (
@@ -44,9 +51,9 @@ function CollectionContent() {
       .sort((a, b) => {
         if (sortBy === 'price-low') return a.price - b.price;
         if (sortBy === 'price-high') return b.price - a.price;
-        if (sortBy === 'best-selling') return b.reviewsCount - a.reviewsCount;
+        if (sortBy === 'best-selling') return (b.reviewsCount || 0) - (a.reviewsCount || 0);
         if (sortBy === 'newest') return (b.tag === 'New' ? 1 : 0) - (a.tag === 'New' ? 1 : 0);
-        return b.rating - a.rating; // default popular
+        return (b.rating || 5) - (a.rating || 5); // default popular
       });
   }, [cakes, selectedCategory, selectedFlavor, selectedWeight, egglessOnly, priceMax, searchQuery, sortBy]);
 
@@ -55,7 +62,7 @@ function CollectionContent() {
     setSelectedFlavor('');
     setSelectedWeight('');
     setEgglessOnly(false);
-    setPriceMax(200);
+    setPriceMax(10000);
     setSearchQuery('');
   };
 
@@ -169,59 +176,63 @@ function CollectionContent() {
             </div>
 
             {/* Flavor Filter */}
-            <div className="space-y-2 pt-2 border-t border-amber-100 dark:border-amber-900/40">
-              <label className="text-xs font-bold text-stone-800 dark:text-stone-200">Flavor Profile</label>
-              <select
-                value={selectedFlavor}
-                onChange={(e) => setSelectedFlavor(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800"
-              >
-                <option value="">All Flavors</option>
-                {allFlavors.map((flv) => (
-                  <option key={flv} value={flv}>
-                    {flv}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {allFlavors.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-amber-100 dark:border-amber-900/40">
+                <label className="text-xs font-bold text-stone-800 dark:text-stone-200">Flavor Profile</label>
+                <select
+                  value={selectedFlavor}
+                  onChange={(e) => setSelectedFlavor(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800"
+                >
+                  <option value="">All Flavors</option>
+                  {allFlavors.map((flv) => (
+                    <option key={flv} value={flv}>
+                      {flv}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Weight Filter */}
-            <div className="space-y-2 pt-2 border-t border-amber-100 dark:border-amber-900/40">
-              <label className="text-xs font-bold text-stone-800 dark:text-stone-200">Weight</label>
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  onClick={() => setSelectedWeight('')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${
-                    selectedWeight === '' ? 'bg-amber-500 text-amber-950 font-bold border-amber-500' : 'border-stone-300'
-                  }`}
-                >
-                  Any
-                </button>
-                {allWeights.map((w) => (
+            {allWeights.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-amber-100 dark:border-amber-900/40">
+                <label className="text-xs font-bold text-stone-800 dark:text-stone-200">Weight</label>
+                <div className="flex flex-wrap gap-1.5">
                   <button
-                    key={w}
-                    onClick={() => setSelectedWeight(w)}
+                    onClick={() => setSelectedWeight('')}
                     className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${
-                      selectedWeight === w ? 'bg-amber-500 text-amber-950 font-bold border-amber-500' : 'border-stone-300'
+                      selectedWeight === '' ? 'bg-amber-500 text-amber-950 font-bold border-amber-500' : 'border-stone-300'
                     }`}
                   >
-                    {w}
+                    Any
                   </button>
-                ))}
+                  {allWeights.map((w) => (
+                    <button
+                      key={w}
+                      onClick={() => setSelectedWeight(w)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${
+                        selectedWeight === w ? 'bg-amber-500 text-amber-950 font-bold border-amber-500' : 'border-stone-300'
+                      }`}
+                    >
+                      {w}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Price Max Slider */}
             <div className="space-y-2 pt-2 border-t border-amber-100 dark:border-amber-900/40">
               <div className="flex justify-between text-xs font-bold text-stone-800 dark:text-stone-200">
                 <span>Max Price:</span>
-                <span className="text-amber-600">${priceMax}</span>
+                <span className="text-amber-600">{formatCurrency(priceMax)}</span>
               </div>
               <input
                 type="range"
-                min="20"
-                max="200"
-                step="5"
+                min="100"
+                max="10000"
+                step="100"
                 value={priceMax}
                 onChange={(e) => setPriceMax(Number(e.target.value))}
                 className="w-full accent-amber-600"
@@ -246,17 +257,21 @@ function CollectionContent() {
           {filteredCakes.length === 0 ? (
             <div className="glass-card p-12 text-center space-y-3">
               <h3 className="font-serif-luxury text-xl font-bold text-stone-800 dark:text-stone-200">
-                No cakes found matching your criteria
+                {cakes.length === 0 ? 'No cakes available yet' : 'No cakes found matching your criteria'}
               </h3>
               <p className="text-xs text-stone-500 max-w-sm mx-auto">
-                Try resetting your price filter or selecting another category.
+                {cakes.length === 0
+                  ? 'Cakes uploaded by the Admin will appear here automatically.'
+                  : 'Try resetting your price filter or selecting another category.'}
               </p>
-              <button
-                onClick={clearFilters}
-                className="px-6 py-2.5 rounded-xl gold-button-gradient font-bold text-xs shadow-md"
-              >
-                Clear All Filters
-              </button>
+              {cakes.length > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="px-6 py-2.5 rounded-xl gold-button-gradient font-bold text-xs shadow-md"
+                >
+                  Clear All Filters
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
