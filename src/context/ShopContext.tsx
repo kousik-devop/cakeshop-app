@@ -84,6 +84,35 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [quickViewCake, setQuickViewCake] = useState<Cake | null>(null);
 
+  // Sync with MongoDB API on mount for multi-device data consistency
+  useEffect(() => {
+    async function loadBackendData() {
+      try {
+        const resCakes = await fetch('/api/cakes');
+        const jsonCakes = await resCakes.json();
+        if (jsonCakes.success && Array.isArray(jsonCakes.data) && jsonCakes.data.length > 0) {
+          setCakes(jsonCakes.data);
+          localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(jsonCakes.data));
+        }
+      } catch (err) {
+        console.log('Using local cakes fallback:', err);
+      }
+
+      try {
+        const resSettings = await fetch('/api/settings');
+        const jsonSettings = await resSettings.json();
+        if (jsonSettings.success && jsonSettings.data) {
+          setShopSettings((prev) => ({ ...prev, ...jsonSettings.data }));
+          localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(jsonSettings.data));
+        }
+      } catch (err) {
+        console.log('Using local settings fallback:', err);
+      }
+    }
+
+    loadBackendData();
+  }, []);
+
   useEffect(() => {
     try {
       const savedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
@@ -145,6 +174,12 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = { ...shopSettings, ...newSettings };
     setShopSettings(updated);
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(updated));
+
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(console.error);
   };
 
   const addCake = (newCakeData: Omit<Cake, 'id'>) => {
@@ -157,12 +192,27 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = [newCake, ...cakes];
     setCakes(updated);
     localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(updated));
+
+    fetch('/api/cakes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newCake),
+    }).catch(console.error);
   };
 
   const updateCake = (id: string, cakeData: Partial<Cake>) => {
     const updated = cakes.map((c) => (c.id === id ? { ...c, ...cakeData } : c));
     setCakes(updated);
     localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(updated));
+
+    const target = updated.find((c) => c.id === id);
+    if (target) {
+      fetch('/api/cakes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(target),
+      }).catch(console.error);
+    }
   };
 
   const deleteCake = (id: string) => {
