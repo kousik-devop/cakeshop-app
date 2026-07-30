@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Cake, Category, Offer, CartItem, Order, ShopSettings, SellerMessage, Review, BlogPost, AppNotification, ShippingAddress } from '@/types';
-import { initialShopSettings, initialCakes, initialCategories, initialOffers, initialReviews, initialBlogs, initialNotifications } from '@/data/mockData';
+import { initialShopSettings, initialCategories, initialOffers, initialReviews, initialBlogs, initialNotifications } from '@/data/mockData';
 import { generateOrderNumber, formatCurrency, calculateDiscountedPrice } from '@/lib/utils';
 
 interface ShopContextType {
@@ -68,7 +68,7 @@ const STORAGE_KEYS = {
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [shopSettings, setShopSettings] = useState<ShopSettings>(initialShopSettings);
-  const [cakes, setCakes] = useState<Cake[]>(initialCakes);
+  const [cakes, setCakes] = useState<Cake[]>([]);
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [offers, setOffers] = useState<Offer[]>(initialOffers);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -90,7 +90,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const resCakes = await fetch('/api/cakes');
         const jsonCakes = await resCakes.json();
-        if (jsonCakes.success && Array.isArray(jsonCakes.data) && jsonCakes.data.length > 0) {
+        if (jsonCakes.success && Array.isArray(jsonCakes.data)) {
           setCakes(jsonCakes.data);
           localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(jsonCakes.data));
         }
@@ -123,15 +123,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const savedCakes = localStorage.getItem(STORAGE_KEYS.CAKES);
       if (savedCakes) {
         const parsed = JSON.parse(savedCakes);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           setCakes(parsed);
-        } else {
-          setCakes(initialCakes);
-          localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(initialCakes));
         }
-      } else {
-        setCakes(initialCakes);
-        localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(initialCakes));
       }
 
       const savedCategories = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
@@ -139,34 +133,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const parsed = JSON.parse(savedCategories);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setCategories(parsed);
-        } else {
-          setCategories(initialCategories);
         }
       }
-
-      const savedOffers = localStorage.getItem(STORAGE_KEYS.OFFERS);
-      if (savedOffers) setOffers(JSON.parse(savedOffers));
-
-      const savedCart = localStorage.getItem(STORAGE_KEYS.CART);
-      if (savedCart) setCart(JSON.parse(savedCart));
-
-      const savedWishlist = localStorage.getItem(STORAGE_KEYS.WISHLIST);
-      if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
-
-      const savedRecent = localStorage.getItem(STORAGE_KEYS.RECENTLY_VIEWED);
-      if (savedRecent) setRecentlyViewedCakes(JSON.parse(savedRecent));
-
-      const savedOrders = localStorage.getItem(STORAGE_KEYS.ORDERS);
-      if (savedOrders) setOrders(JSON.parse(savedOrders));
-
-      const savedMsgs = localStorage.getItem(STORAGE_KEYS.MESSAGES);
-      if (savedMsgs) setSellerMessages(JSON.parse(savedMsgs));
-
-      const savedBlogs = localStorage.getItem(STORAGE_KEYS.BLOGS);
-      if (savedBlogs) setBlogs(JSON.parse(savedBlogs));
     } catch (e) {
       console.error('Error reading local storage:', e);
-      setCakes(initialCakes);
     }
   }, []);
 
@@ -217,9 +187,12 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteCake = (id: string) => {
     const updated = cakes.filter((c) => c.id !== id);
-    const finalCakes = updated.length > 0 ? updated : initialCakes;
-    setCakes(finalCakes);
-    localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(finalCakes));
+    setCakes(updated);
+    localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(updated));
+
+    fetch(`/api/cakes?id=${id}`, {
+      method: 'DELETE',
+    }).catch(console.error);
   };
 
   const addCategory = (categoryData: Omit<Category, 'id'>) => {
