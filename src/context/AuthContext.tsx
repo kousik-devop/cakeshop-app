@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = (email: string, pass: string): boolean => {
-    if (email.toLowerCase() === 'priya2006maity@gmail.com' && pass === 'Priyamaiti123') {
+    if (email.toLowerCase() === 'priya2006maity@gmail.com' && pass === 'Priyamaity123') {
       setUser(mockAdminUser);
       localStorage.setItem('sdc_user', JSON.stringify(mockAdminUser));
       return true;
