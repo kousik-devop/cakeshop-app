@@ -18,6 +18,8 @@ import {
   Info,
   Loader2,
   CloudUpload,
+  Layers,
+  X,
 } from 'lucide-react';
 
 export default function AdminCakesPage() {
@@ -60,8 +62,8 @@ export default function AdminCakesPage() {
           const json = await res.json();
           if (json.success && json.url) {
             setImage(json.url);
-            setUploadSuccess('Image successfully uploaded to Cloudinary!');
-            setTimeout(() => setUploadSuccess(''), 3000);
+            setUploadSuccess('Image uploaded to Cloudinary! Only Cloudinary link saved.');
+            setTimeout(() => setUploadSuccess(''), 3500);
           } else {
             setImage(rawData);
           }
@@ -92,8 +94,8 @@ export default function AdminCakesPage() {
       gallery: [image],
       rating: 5.0,
       reviewsCount: 1,
-      flavors: flavors.split(',').map((f) => f.trim()),
-      weights: weights.split(',').map((w) => w.trim()),
+      flavors: flavors.split(',').map((f) => f.trim()).filter(Boolean),
+      weights: weights.split(',').map((w) => w.trim()).filter(Boolean),
       isEggless,
       ingredients: ['Premium Flour', 'Butter', 'Fresh Cream', 'Sugar'],
       deliveryTimeHours: 3,
@@ -141,15 +143,16 @@ export default function AdminCakesPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-8 text-stone-100">
-      {/* Top Header */}
+    <div className="max-w-7xl mx-auto px-3 sm:px-8 py-6 sm:py-8 space-y-6 text-stone-100">
+      {/* Top Header - Mobile Friendly */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-800 pb-4">
         <div>
-          <h1 className="font-serif-luxury text-2xl sm:text-3xl font-extrabold text-amber-100 flex items-center gap-2">
-            <Package className="w-6 h-6 text-amber-500" /> Bakery Cake Catalog Manager
+          <h1 className="font-serif-luxury text-xl sm:text-3xl font-extrabold text-amber-100 flex items-center gap-2">
+            <Package className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500 shrink-0" />
+            <span>Cake Menu Manager</span>
           </h1>
-          <p className="text-xs text-stone-400">
-            Add, update, or remove cakes. Uploaded images are hosted on Cloudinary.
+          <p className="text-[11px] sm:text-xs text-stone-400 mt-1">
+            Mobile-friendly bakery editor. Image links are hosted on Cloudinary & stored in MongoDB.
           </p>
         </div>
 
@@ -162,10 +165,12 @@ export default function AdminCakesPage() {
               setIsAdding(true);
             }
           }}
-          className="px-5 py-2.5 rounded-xl gold-button-gradient font-bold text-xs shadow-md flex items-center justify-center gap-2 self-start sm:self-auto cursor-pointer"
+          className="w-full sm:w-auto px-5 py-3 rounded-xl gold-button-gradient font-bold text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-transform"
         >
           {isAdding ? (
-            <span>Close Form</span>
+            <>
+              <X className="w-4 h-4" /> <span>Close Form</span>
+            </>
           ) : (
             <>
               <Plus className="w-4 h-4" /> <span>Add New Cake</span>
@@ -175,20 +180,22 @@ export default function AdminCakesPage() {
       </div>
 
       {uploadSuccess && (
-        <div className="p-3.5 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-xs text-emerald-200 flex items-center gap-2">
+        <div className="p-3.5 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-xs text-emerald-200 flex items-center gap-2 animate-in fade-in">
           <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{uploadSuccess}</span>
         </div>
       )}
 
-      {/* Add / Edit Form Modal Box */}
+      {/* Add / Edit Form Modal Box - Mobile Responsive */}
       {isAdding && (
-        <div className="glass-card bg-stone-900 p-6 sm:p-8 rounded-3xl border border-amber-500/30 space-y-6 text-xs animate-in fade-in duration-300">
+        <div className="glass-card bg-stone-900 p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-amber-500/30 space-y-5 text-xs animate-in fade-in duration-300">
           <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-            <h2 className="font-serif-luxury text-lg font-bold text-amber-200">
+            <h2 className="font-serif-luxury text-base sm:text-lg font-bold text-amber-200">
               {editingCakeId ? 'Edit Cake Details' : 'Upload New Cake'}
             </h2>
-            <span className="text-[10px] text-stone-400">Cloudinary Media Storage Enabled</span>
+            <span className="text-[10px] text-amber-400/90 bg-amber-500/10 px-2 py-0.5 rounded-full font-bold">
+              Cloudinary URL Storage
+            </span>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -221,21 +228,21 @@ export default function AdminCakesPage() {
               </div>
             </div>
 
-            {/* Direct Image File Upload to Cloudinary & URL fallback */}
+            {/* Direct Image File Upload to Cloudinary & URL */}
             <div className="space-y-2">
-              <label className="block font-bold text-stone-200">Cake Image (Cloudinary Hosted) *</label>
+              <label className="block font-bold text-stone-200">Cake Image (Uploads to Cloudinary) *</label>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-                <label className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 cursor-pointer text-amber-300 font-bold transition-colors">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                <label className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 cursor-pointer text-amber-300 font-bold transition-colors text-center text-xs">
                   {isUploading ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                      <Loader2 className="w-4 h-4 animate-spin text-amber-400 shrink-0" />
                       <span>Uploading to Cloudinary...</span>
                     </>
                   ) : (
                     <>
-                      <CloudUpload className="w-4 h-4 text-amber-400" />
-                      <span>Upload Device Image to Cloudinary</span>
+                      <CloudUpload className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>Upload Phone/PC Photo to Cloudinary</span>
                     </>
                   )}
                   <input
@@ -249,16 +256,16 @@ export default function AdminCakesPage() {
 
                 <input
                   type="text"
-                  placeholder="Or paste direct image URL..."
+                  placeholder="Or paste Cloudinary image URL..."
                   value={image}
                   onChange={(e) => setImage(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-700 bg-stone-800 text-stone-100 text-xs focus:outline-none focus:border-amber-400"
+                  className="w-full sm:flex-1 px-3.5 py-2.5 rounded-xl border border-stone-700 bg-stone-800 text-stone-100 text-xs focus:outline-none focus:border-amber-400 truncate"
                 />
               </div>
 
               {/* Live Preview Card */}
               {image && (
-                <div className="relative w-32 h-32 rounded-2xl overflow-hidden border border-amber-500/40 bg-stone-950 mt-2">
+                <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border border-amber-500/40 bg-stone-950 mt-2">
                   <img src={image} alt="Cake Preview" className="w-full h-full object-cover" />
                   <span className="absolute bottom-1 left-1 bg-stone-950/80 px-1.5 py-0.5 rounded text-[9px] text-amber-300 font-bold">
                     Live Preview
@@ -310,7 +317,7 @@ export default function AdminCakesPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block font-bold mb-1 text-stone-200">Available Flavors (Comma separated)</label>
+                <label className="block font-bold mb-1 text-stone-200">Flavors (Comma separated)</label>
                 <input
                   type="text"
                   value={flavors}
@@ -320,7 +327,7 @@ export default function AdminCakesPage() {
               </div>
 
               <div>
-                <label className="block font-bold mb-1 text-stone-200">Available Weights (Comma separated)</label>
+                <label className="block font-bold mb-1 text-stone-200">Weights (Comma separated)</label>
                 <input
                   type="text"
                   value={weights}
@@ -354,14 +361,14 @@ export default function AdminCakesPage() {
               </label>
             </div>
 
-            <div className="pt-3 border-t border-stone-800 flex justify-end gap-3">
+            <div className="pt-3 border-t border-stone-800 flex flex-col sm:flex-row justify-end gap-3">
               <button
                 type="button"
                 onClick={() => {
                   setIsAdding(false);
                   resetForm();
                 }}
-                className="px-5 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold text-center"
               >
                 Cancel
               </button>
@@ -369,7 +376,7 @@ export default function AdminCakesPage() {
               <button
                 type="submit"
                 disabled={isUploading}
-                className="px-6 py-2.5 rounded-xl gold-button-gradient font-bold shadow-md flex items-center gap-2 cursor-pointer"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl gold-button-gradient font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 <CheckCircle className="w-4 h-4" />
                 <span>{editingCakeId ? 'Save Changes' : 'Publish Cake to Menu'}</span>
@@ -379,96 +386,157 @@ export default function AdminCakesPage() {
         </div>
       )}
 
-      {/* Cakes Table List */}
-      <div className="glass-card bg-stone-900 rounded-3xl border border-stone-800 overflow-hidden shadow-md">
+      {/* Cakes Catalog - Responsive Mobile Cards & Desktop Table */}
+      <div className="glass-card bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-800 overflow-hidden shadow-md space-y-4">
         <div className="p-4 sm:p-6 border-b border-stone-800 flex items-center justify-between">
-          <h2 className="font-serif-luxury font-bold text-lg text-amber-100">
+          <h2 className="font-serif-luxury font-bold text-base sm:text-lg text-amber-100">
             Active Cakes ({cakes.length})
           </h2>
-          <span className="text-[11px] text-stone-400">Synced across all devices</span>
+          <span className="text-[10px] sm:text-[11px] text-stone-400">Synced across all devices</span>
         </div>
 
         {cakes.length === 0 ? (
-          <div className="p-12 text-center text-stone-400 space-y-2">
-            <Package className="w-12 h-12 text-amber-500/50 mx-auto" />
-            <p className="font-bold">No cakes in catalog.</p>
-            <p className="text-xs text-stone-500">Click "Add New Cake" above to upload your first cake!</p>
+          <div className="p-10 sm:p-12 text-center text-stone-400 space-y-2">
+            <Package className="w-10 h-10 sm:w-12 sm:h-12 text-amber-500/50 mx-auto" />
+            <p className="font-bold text-xs sm:text-sm">No cakes in catalog.</p>
+            <p className="text-[11px] sm:text-xs text-stone-500">Click "Add New Cake" above to upload your first cake!</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-stone-950 text-stone-400 uppercase tracking-wider font-bold border-b border-stone-800">
-                <tr>
-                  <th className="p-4">Cake Info</th>
-                  <th className="p-4">Category</th>
-                  <th className="p-4">Price</th>
-                  <th className="p-4">Dietary</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-800">
-                {cakes.map((cake) => (
-                  <tr key={cake.id} className="hover:bg-stone-800/50 transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={cake.image}
-                          alt={cake.name}
-                          className="w-12 h-12 rounded-xl object-cover border border-stone-700 shrink-0"
-                        />
-                        <div>
-                          <span className="font-serif-luxury font-bold text-stone-100 text-sm block">
-                            {cake.name}
-                          </span>
-                          <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full inline-block mt-0.5">
-                            {cake.tag || 'Available'}
-                          </span>
-                        </div>
+          <>
+            {/* 1. Mobile Cards View (Visible on screens < 640px) */}
+            <div className="block sm:hidden p-3 space-y-3">
+              {cakes.map((cake) => (
+                <div
+                  key={cake.id}
+                  className="p-3 rounded-2xl bg-stone-950/80 border border-stone-800 space-y-3"
+                >
+                  <div className="flex gap-3 items-center">
+                    <img
+                      src={cake.image}
+                      alt={cake.name}
+                      className="w-16 h-16 rounded-xl object-cover border border-stone-700 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-serif-luxury font-bold text-stone-100 text-xs truncate">
+                          {cake.name}
+                        </span>
+                        <span className="text-[9px] text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded-full shrink-0">
+                          {cake.tag || 'Available'}
+                        </span>
                       </div>
-                    </td>
-
-                    <td className="p-4 text-stone-300 font-medium">{cake.category}</td>
-
-                    <td className="p-4">
-                      <span className="font-bold text-amber-400 text-sm">
-                        {formatCurrency(cake.price, shopSettings.currencySymbol)}
-                      </span>
-                    </td>
-
-                    <td className="p-4">
-                      {cake.isEggless ? (
-                        <span className="text-emerald-400 font-bold">100% Eggless 🌱</span>
-                      ) : (
-                        <span className="text-stone-400 font-medium">Contains Egg 🥚</span>
-                      )}
-                    </td>
-
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => startEdit(cake)}
-                          className="p-2 rounded-lg bg-stone-800 hover:bg-amber-500 hover:text-stone-950 text-stone-300 font-bold transition-colors cursor-pointer"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            if (confirm(`Delete cake "${cake.name}"?`)) {
-                              deleteCake(cake.id);
-                            }
-                          }}
-                          className="p-2 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <p className="text-[10px] text-stone-400 mt-0.5 truncate">{cake.category}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="font-bold text-amber-400 text-xs">
+                          {formatCurrency(cake.price, shopSettings.currencySymbol)}
+                        </span>
+                        <span className="text-[10px] text-stone-400">
+                          {cake.isEggless ? '🌱 Eggless' : '🥚 Egg'}
+                        </span>
                       </div>
-                    </td>
+                    </div>
+                  </div>
+
+                  {/* Quick Action Buttons for Mobile */}
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-800">
+                    <button
+                      onClick={() => startEdit(cake)}
+                      className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-amber-500 hover:text-stone-950 text-amber-300 font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" /> Edit
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (confirm(`Delete cake "${cake.name}"?`)) {
+                          deleteCake(cake.id);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 2. Desktop Table View (Visible on screens >= 640px) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-stone-950 text-stone-400 uppercase tracking-wider font-bold border-b border-stone-800">
+                  <tr>
+                    <th className="p-4">Cake Info</th>
+                    <th className="p-4">Category</th>
+                    <th className="p-4">Price</th>
+                    <th className="p-4">Dietary</th>
+                    <th className="p-4 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-stone-800">
+                  {cakes.map((cake) => (
+                    <tr key={cake.id} className="hover:bg-stone-800/50 transition-colors">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={cake.image}
+                            alt={cake.name}
+                            className="w-12 h-12 rounded-xl object-cover border border-stone-700 shrink-0"
+                          />
+                          <div>
+                            <span className="font-serif-luxury font-bold text-stone-100 text-sm block">
+                              {cake.name}
+                            </span>
+                            <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                              {cake.tag || 'Available'}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="p-4 text-stone-300 font-medium">{cake.category}</td>
+
+                      <td className="p-4">
+                        <span className="font-bold text-amber-400 text-sm">
+                          {formatCurrency(cake.price, shopSettings.currencySymbol)}
+                        </span>
+                      </td>
+
+                      <td className="p-4">
+                        {cake.isEggless ? (
+                          <span className="text-emerald-400 font-bold">100% Eggless 🌱</span>
+                        ) : (
+                          <span className="text-stone-400 font-medium">Contains Egg 🥚</span>
+                        )}
+                      </td>
+
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => startEdit(cake)}
+                            className="p-2 rounded-lg bg-stone-800 hover:bg-amber-500 hover:text-stone-950 text-stone-300 font-bold transition-colors cursor-pointer"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              if (confirm(`Delete cake "${cake.name}"?`)) {
+                                deleteCake(cake.id);
+                              }
+                            }}
+                            className="p-2 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>
