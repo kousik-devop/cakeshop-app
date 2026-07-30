@@ -1,9 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Cake, Category, Offer, CartItem, Order, ShopSettings, SellerMessage, Review, BlogPost, AppNotification } from '@/types';
+import { Cake, Category, Offer, CartItem, Order, ShopSettings, SellerMessage, Review, BlogPost, AppNotification, ShippingAddress } from '@/types';
 import { initialShopSettings, initialCakes, initialCategories, initialOffers, initialReviews, initialBlogs, initialNotifications } from '@/data/mockData';
-import { generateOrderNumber, formatCurrency } from '@/lib/utils';
+import { generateOrderNumber, formatCurrency, calculateDiscountedPrice } from '@/lib/utils';
 
 interface ShopContextType {
   shopSettings: ShopSettings;
@@ -87,13 +87,33 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     try {
       const savedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-      if (savedSettings) setShopSettings(JSON.parse(savedSettings));
+      if (savedSettings) {
+        setShopSettings(JSON.parse(savedSettings));
+      }
 
       const savedCakes = localStorage.getItem(STORAGE_KEYS.CAKES);
-      if (savedCakes) setCakes(JSON.parse(savedCakes));
+      if (savedCakes) {
+        const parsed = JSON.parse(savedCakes);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCakes(parsed);
+        } else {
+          setCakes(initialCakes);
+          localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(initialCakes));
+        }
+      } else {
+        setCakes(initialCakes);
+        localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(initialCakes));
+      }
 
       const savedCategories = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-      if (savedCategories) setCategories(JSON.parse(savedCategories));
+      if (savedCategories) {
+        const parsed = JSON.parse(savedCategories);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCategories(parsed);
+        } else {
+          setCategories(initialCategories);
+        }
+      }
 
       const savedOffers = localStorage.getItem(STORAGE_KEYS.OFFERS);
       if (savedOffers) setOffers(JSON.parse(savedOffers));
@@ -117,6 +137,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (savedBlogs) setBlogs(JSON.parse(savedBlogs));
     } catch (e) {
       console.error('Error reading local storage:', e);
+      setCakes(initialCakes);
     }
   }, []);
 
@@ -138,27 +159,34 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(updated));
   };
 
-  const updateCake = (id: string, updatedFields: Partial<Cake>) => {
-    const updated = cakes.map((c) => (c.id === id ? { ...c, ...updatedFields } : c));
+  const updateCake = (id: string, cakeData: Partial<Cake>) => {
+    const updated = cakes.map((c) => (c.id === id ? { ...c, ...cakeData } : c));
     setCakes(updated);
     localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(updated));
   };
 
   const deleteCake = (id: string) => {
     const updated = cakes.filter((c) => c.id !== id);
-    setCakes(updated);
-    localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(updated));
+    const finalCakes = updated.length > 0 ? updated : initialCakes;
+    setCakes(finalCakes);
+    localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(finalCakes));
   };
 
-  const addCategory = (catData: Omit<Category, 'id'>) => {
-    const newCat: Category = { ...catData, id: `cat-${Date.now()}` };
-    const updated = [...categories, newCat];
+  const addCategory = (categoryData: Omit<Category, 'id'>) => {
+    const newCategory: Category = {
+      ...categoryData,
+      id: `cat-${Date.now()}`,
+    };
+    const updated = [...categories, newCategory];
     setCategories(updated);
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(updated));
   };
 
   const addOffer = (offerData: Omit<Offer, 'id'>) => {
-    const newOffer: Offer = { ...offerData, id: `offer-${Date.now()}` };
+    const newOffer: Offer = {
+      ...offerData,
+      id: `offer-${Date.now()}`,
+    };
     const updated = [newOffer, ...offers];
     setOffers(updated);
     localStorage.setItem(STORAGE_KEYS.OFFERS, JSON.stringify(updated));
@@ -171,32 +199,30 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addToCart = (item: CartItem) => {
-    const existingIndex = cart.findIndex(
-      (ci) =>
-        ci.cake.id === item.cake.id &&
-        ci.selectedFlavor === item.selectedFlavor &&
-        ci.selectedWeight === item.selectedWeight &&
-        ci.isEggless === item.isEggless
-    );
-
-    let updatedCart: CartItem[];
-    if (existingIndex > -1) {
-      updatedCart = [...cart];
-      updatedCart[existingIndex].quantity += item.quantity;
-    } else {
-      updatedCart = [...cart, item];
-    }
-    setCart(updatedCart);
-    localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(updatedCart));
-    setIsCartDrawerOpen(true);
+    setCart((prev) => {
+      const existingIndex = prev.findIndex(
+        (i) => i.cake.id === item.cake.id && i.selectedFlavor === item.selectedFlavor && i.selectedWeight === item.selectedWeight
+      );
+      let updated: CartItem[];
+      if (existingIndex > -1) {
+        updated = [...prev];
+        updated[existingIndex].quantity += item.quantity;
+      } else {
+        updated = [...prev, item];
+      }
+      localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const removeFromCart = (cakeId: string, flavor: string, weight: string) => {
-    const updated = cart.filter(
-      (item) => !(item.cake.id === cakeId && item.selectedFlavor === flavor && item.selectedWeight === weight)
-    );
-    setCart(updated);
-    localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(updated));
+    setCart((prev) => {
+      const updated = prev.filter(
+        (i) => !(i.cake.id === cakeId && i.selectedFlavor === flavor && i.selectedWeight === weight)
+      );
+      localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const updateCartQuantity = (cakeId: string, flavor: string, weight: string, quantity: number) => {
@@ -204,149 +230,116 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       removeFromCart(cakeId, flavor, weight);
       return;
     }
-    const updated = cart.map((item) =>
-      item.cake.id === cakeId && item.selectedFlavor === flavor && item.selectedWeight === weight
-        ? { ...item, quantity }
-        : item
-    );
-    setCart(updated);
-    localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(updated));
+    setCart((prev) => {
+      const updated = prev.map((i) =>
+        i.cake.id === cakeId && i.selectedFlavor === flavor && i.selectedWeight === weight ? { ...i, quantity } : i
+      );
+      localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const clearCart = () => {
     setCart([]);
-    localStorage.removeItem(STORAGE_KEYS.CART);
+    localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify([]));
   };
 
   const cartTotal = cart.reduce((total, item) => {
-    const basePrice = item.cake.discountPercent
-      ? item.cake.price - (item.cake.price * item.cake.discountPercent) / 100
-      : item.cake.price;
-    return total + basePrice * item.quantity;
+    const unitPrice = calculateDiscountedPrice(item.cake.price, item.cake.discountPercent);
+    return total + unitPrice * item.quantity;
   }, 0);
 
   const toggleWishlist = (cake: Cake) => {
-    const exists = wishlist.some((c) => c.id === cake.id);
-    let updated: Cake[];
-    if (exists) {
-      updated = wishlist.filter((c) => c.id !== cake.id);
-    } else {
-      updated = [...wishlist, cake];
-    }
-    setWishlist(updated);
-    localStorage.setItem(STORAGE_KEYS.WISHLIST, JSON.stringify(updated));
+    setWishlist((prev) => {
+      const exists = prev.some((c) => c.id === cake.id);
+      const updated = exists ? prev.filter((c) => c.id !== cake.id) : [...prev, cake];
+      localStorage.setItem(STORAGE_KEYS.WISHLIST, JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const isInWishlist = (cakeId: string) => wishlist.some((c) => c.id === cakeId);
 
   const addRecentlyViewed = (cake: Cake) => {
-    const filtered = recentlyViewedCakes.filter((c) => c.id !== cake.id);
-    const updated = [cake, ...filtered].slice(0, 8);
-    setRecentlyViewedCakes(updated);
-    localStorage.setItem(STORAGE_KEYS.RECENTLY_VIEWED, JSON.stringify(updated));
+    setRecentlyViewedCakes((prev) => {
+      const filtered = prev.filter((c) => c.id !== cake.id);
+      const updated = [cake, ...filtered].slice(0, 6);
+      localStorage.setItem(STORAGE_KEYS.RECENTLY_VIEWED, JSON.stringify(updated));
+      return updated;
+    });
   };
 
-  // Order creation with Auto Stock Reduction
   const createOrder = (orderData: Partial<Order>): Order => {
-    const orderNum = generateOrderNumber();
-    const currentCartItems = orderData.items || cart;
-
-    // Reduce inventory counts automatically
-    const updatedCakes = cakes.map((c) => {
-      const cartItem = currentCartItems.find((ci) => ci.cake.id === c.id);
-      if (cartItem) {
-        const newCount = Math.max(0, c.inventoryCount - cartItem.quantity);
-        return {
-          ...c,
-          inventoryCount: newCount,
-          stockStatus: newCount === 0 ? 'Out of Stock' : newCount < 10 ? 'Limited Stock' : 'Available',
-        } as Cake;
-      }
-      return c;
-    });
-    setCakes(updatedCakes);
-    localStorage.setItem(STORAGE_KEYS.CAKES, JSON.stringify(updatedCakes));
+    const defaultAddress: ShippingAddress = {
+      id: 'addr-default',
+      fullName: orderData.customerName || 'Guest Customer',
+      phone: orderData.customerPhone || '+91 98765 43210',
+      streetAddress: '124 Gourmet Bakery Ave',
+      city: 'New Delhi',
+      state: 'Delhi',
+      pinCode: '110001',
+    };
 
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
-      orderNumber: orderNum,
-      createdAt: new Date().toISOString(),
-      items: currentCartItems,
+      orderNumber: generateOrderNumber(),
+      customerName: orderData.customerName || 'Guest Customer',
+      customerEmail: orderData.customerEmail || 'customer@example.com',
+      customerPhone: orderData.customerPhone || '+91 98765 43210',
+      shippingAddress: orderData.shippingAddress || defaultAddress,
+      items: orderData.items || [...cart],
       totalAmount: orderData.totalAmount || cartTotal,
-      discountAmount: orderData.discountAmount || 0,
-      deliveryFee: orderData.deliveryFee || 0,
-      finalAmount: orderData.finalAmount || cartTotal,
-      status: 'Accepted',
-      timeline: [
-        { status: 'Pending', label: 'Order Received', timestamp: new Date().toLocaleTimeString(), completed: true, current: false, description: 'Your order was registered.' },
-        { status: 'Accepted', label: 'Order Confirmed', timestamp: new Date().toLocaleTimeString(), completed: true, current: true, description: 'Kitchen accepted your request.' },
-        { status: 'Preparing', label: 'Batter & Mix', completed: false, current: false, description: 'Selecting organic ingredients.' },
-        { status: 'Baking', label: 'In Oven', completed: false, current: false, description: 'Baking at 180°C.' },
-        { status: 'Decorating', label: 'Icing & Topping', completed: false, current: false, description: 'Applying Belgian buttercream.' },
-        { status: 'Out for Delivery', label: 'Dispatched', completed: false, current: false, description: 'Dispatched in refrigerated van.' },
-        { status: 'Delivered', label: 'Delivered', completed: false, current: false, description: 'Delivered to your doorstep!' },
-      ],
-      customerName: orderData.customerName || 'Valued Guest',
-      customerEmail: orderData.customerEmail || 'guest@example.com',
-      customerPhone: orderData.customerPhone || '+1 (555) 019-2834',
-      shippingAddress: orderData.shippingAddress || { id: 'addr-1', fullName: 'Guest', phone: '', streetAddress: '123 Cake St', city: 'Metropolis', state: 'NY', pinCode: '10001' },
-      deliverySlot: orderData.deliverySlot || 'Morning 10:00 AM - 1:00 PM',
-      deliveryDate: orderData.deliveryDate || new Date().toLocaleDateString(),
-      paymentMethod: orderData.paymentMethod || 'Razorpay',
-      paymentStatus: orderData.paymentStatus || 'Paid',
-      transactionId: orderData.transactionId || `TXN-${Math.floor(100000 + Math.random() * 900000)}`,
-      assignedBaker: 'Chef Antoine Laurent',
-      assignedCourier: 'Express Bakery Delivery #42',
+      status: 'Pending',
+      paymentStatus: 'Paid',
+      paymentMethod: 'Direct WhatsApp Order',
+      createdAt: new Date().toISOString(),
+      estimatedDeliveryTime: 'Within 3 hours',
+      bakerAssigned: 'Master Chef Antoine',
+      deliveryCourier: 'Express Bakery Dispatch',
+      customMessageOnCake: orderData.customMessageOnCake,
+      isEggless: orderData.isEggless,
     };
 
     const updated = [newOrder, ...orders];
     setOrders(updated);
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
 
-    // Add notification
-    const newNotif: AppNotification = {
-      id: `notif-${Date.now()}`,
-      title: `🎉 Order #${orderNum} Placed!`,
-      message: `Your cake order for ${formatCurrency(newOrder.finalAmount, shopSettings.currencySymbol)} is confirmed.`,
-      date: 'Just now',
-      read: false,
-      type: 'order',
-    };
-    setNotifications([newNotif, ...notifications]);
+    // Reduce stock counts automatically
+    newOrder.items.forEach((item) => {
+      const targetCake = cakes.find((c) => c.id === item.cake.id);
+      if (targetCake) {
+        const newCount = Math.max(0, targetCake.inventoryCount - item.quantity);
+        updateCake(targetCake.id, {
+          inventoryCount: newCount,
+          stockStatus: newCount === 0 ? 'Out of Stock' : newCount < 10 ? 'Limited Stock' : 'Available',
+        });
+      }
+    });
 
     clearCart();
     return newOrder;
   };
 
   const updateOrderStatus = (orderId: string, newStatus: Order['status'], baker?: string, courier?: string) => {
-    const updated = orders.map((ord) => {
-      if (ord.id !== orderId) return ord;
-
-      const updatedTimeline = ord.timeline.map((step) => {
-        if (step.status === newStatus) {
-          return { ...step, completed: true, current: true, timestamp: new Date().toLocaleTimeString() };
-        }
-        return step;
-      });
-
-      return {
-        ...ord,
-        status: newStatus,
-        timeline: updatedTimeline,
-        assignedBaker: baker || ord.assignedBaker,
-        assignedCourier: courier || ord.assignedCourier,
-      };
-    });
-
+    const updated = orders.map((o) =>
+      o.id === orderId
+        ? {
+            ...o,
+            status: newStatus,
+            bakerAssigned: baker || o.bakerAssigned,
+            deliveryCourier: courier || o.deliveryCourier,
+          }
+        : o
+    );
     setOrders(updated);
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
   };
 
-  const addSellerMessage = (msgData: Omit<SellerMessage, 'id' | 'createdAt' | 'status'>) => {
+  const addSellerMessage = (msg: Omit<SellerMessage, 'id' | 'createdAt' | 'status'>) => {
     const newMsg: SellerMessage = {
-      ...msgData,
+      ...msg,
       id: `msg-${Date.now()}`,
-      createdAt: new Date().toLocaleString(),
+      createdAt: new Date().toISOString(),
       status: 'Unread',
     };
     const updated = [newMsg, ...sellerMessages];
@@ -354,17 +347,17 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(updated));
   };
 
-  const addReview = (revData: Omit<Review, 'id' | 'date'>) => {
+  const addReview = (rev: Omit<Review, 'id' | 'date'>) => {
     const newRev: Review = {
-      ...revData,
+      ...rev,
       id: `rev-${Date.now()}`,
       date: new Date().toISOString().split('T')[0],
+      verifiedPurchase: true,
       helpfulCount: 0,
     };
-    setReviews([newRev, ...reviews]);
+    setReviews((prev) => [newRev, ...prev]);
   };
 
-  // Blog CRUD
   const addBlog = (blogData: Omit<BlogPost, 'id' | 'date' | 'slug'>) => {
     const newBlog: BlogPost = {
       ...blogData,
@@ -384,25 +377,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const markNotificationAsRead = (id: string) => {
-    setNotifications(notifications.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   };
 
-  const applyCoupon = (code: string) => {
-    const formatted = code.trim().toUpperCase();
-    const foundOffer = offers.find((o) => o.code === formatted && o.isActive);
-    if (foundOffer) {
-      setAppliedCoupon(foundOffer.code);
-      setCouponDiscountPercent(foundOffer.discountPercent);
-      return true;
-    }
-    if (formatted === 'WELCOME20') {
-      setAppliedCoupon('WELCOME20');
-      setCouponDiscountPercent(20);
-      return true;
-    }
-    if (formatted === 'FREECUPCAKES') {
-      setAppliedCoupon('FREECUPCAKES');
-      setCouponDiscountPercent(15);
+  const applyCoupon = (code: string): boolean => {
+    const target = offers.find((o) => o.code.toUpperCase() === code.toUpperCase() && o.isActive);
+    if (target) {
+      setAppliedCoupon(target.code);
+      setCouponDiscountPercent(target.discountPercent);
       return true;
     }
     return false;

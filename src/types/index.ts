@@ -95,22 +95,25 @@ export interface Order {
   createdAt: string;
   items: CartItem[];
   totalAmount: number;
-  discountAmount: number;
-  deliveryFee: number;
-  finalAmount: number;
+  discountAmount?: number;
+  deliveryFee?: number;
+  finalAmount?: number;
   status: OrderTimelineStep['status'];
-  timeline: OrderTimelineStep[];
+  timeline?: OrderTimelineStep[];
   customerName: string;
   customerEmail: string;
   customerPhone: string;
   shippingAddress: ShippingAddress;
-  deliverySlot: string;
-  deliveryDate: string;
-  paymentMethod: 'Razorpay' | 'Stripe' | 'UPI' | 'Card' | 'NetBanking' | 'COD' | 'Wallet';
+  deliverySlot?: string;
+  deliveryDate?: string;
+  paymentMethod: 'Razorpay' | 'Stripe' | 'UPI' | 'Card' | 'NetBanking' | 'COD' | 'Wallet' | 'Direct WhatsApp Order';
   paymentStatus: 'Paid' | 'Pending' | 'COD';
   transactionId?: string;
-  assignedBaker?: string;
-  assignedCourier?: string;
+  bakerAssigned?: string;
+  deliveryCourier?: string;
+  estimatedDeliveryTime?: string;
+  customMessageOnCake?: string;
+  isEggless?: boolean;
   giftOptions?: GiftOptions;
 }
 
@@ -128,60 +131,22 @@ export interface User {
   email: string;
   phone: string;
   role: 'customer' | 'admin';
-  loyaltyPoints: number;
-  walletBalance: number;
-  membershipTier: MembershipTier;
-  referralCode: string;
-  addresses: ShippingAddress[];
-  reminders: Reminder[];
+  loyaltyPoints?: number;
+  membershipTier?: MembershipTier;
+  addresses?: ShippingAddress[];
+  reminders?: Reminder[];
 }
 
 export interface SellerMessage {
   id: string;
-  cakeId?: string;
-  cakeName?: string;
-  customerName: string;
-  phone: string;
+  senderName: string;
+  senderEmail: string;
+  senderPhone: string;
+  subject: string;
   message: string;
-  preferredDate: string;
-  preferredTime: string;
-  referenceImage?: string;
   createdAt: string;
-  status: 'Unread' | 'Read' | 'Replied';
-}
-
-export interface Review {
-  id: string;
-  cakeId: string;
-  customerName: string;
-  avatar?: string;
-  rating: number;
-  comment: string;
-  date: string;
-  verifiedPurchase: boolean;
-  helpfulCount?: number;
-}
-
-export interface BlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string;
-  content: string;
-  image: string;
-  author: string;
-  date: string;
-  category: 'Recipes' | 'Cake Care' | 'Celebration Ideas' | 'Wedding Trends';
-  readTime: string;
-}
-
-export interface AppNotification {
-  id: string;
-  title: string;
-  message: string;
-  date: string;
-  read: boolean;
-  type: 'order' | 'offer' | 'baking';
+  status: 'Unread' | 'Replied' | 'Archived';
+  replyNotes?: string;
 }
 
 export interface ShopSettings {
@@ -195,4 +160,37 @@ export interface ShopSettings {
   freeShippingMinOrder: number;
   heroNoticeBanner: string;
   heroSliderImages: string[];
+}
+
+export interface Review {
+  id: string;
+  cakeId: string;
+  customerName: string;
+  rating: number;
+  comment: string;
+  date: string;
+  verifiedPurchase: boolean;
+  helpfulCount: number;
+}
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  image: string;
+  author: string;
+  date: string;
+  category: string;
+  readTime: string;
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  date: string;
+  read: boolean;
+  type: 'order' | 'offer' | 'system';
 }
