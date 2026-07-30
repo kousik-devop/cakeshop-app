@@ -14,8 +14,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const mockAdminUser: User = {
   id: 'usr-admin',
-  name: 'Bakery Admin',
-  email: 'admin@sweetdelightcakes.com',
+  name: 'Priya Maity (Admin)',
+  email: 'priya2006maity@gmail.com',
   phone: '+91 98765 43210',
   role: 'admin',
   loyaltyPoints: 1000,
@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = (email: string, pass: string): boolean => {
-    if (email.toLowerCase() === 'admin@sweetdelightcakes.com' && pass === 'admin123') {
+    if (email.toLowerCase() === 'priya2006maity@gmail.com' && pass === 'Priyamaiti123') {
       setUser(mockAdminUser);
       localStorage.setItem('sdc_user', JSON.stringify(mockAdminUser));
       return true;
